@@ -35,9 +35,9 @@
   --shadow:0 14px 34px -18px rgba(120,96,64,0.28);
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;overflow-x:hidden}
+html{scroll-behavior:smooth;overflow-x:clip}
 body{
-  margin:0;background:var(--bg);color:var(--txt);overflow-x:hidden;
+  margin:0;background:var(--bg);color:var(--txt);overflow-x:clip;
   font-family:'IBM Plex Sans Arabic','Tajawal','Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
   font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased;
 }
@@ -60,7 +60,7 @@ body::before{
 }
 
 .side{
-  position:sticky;top:0;height:100vh;overflow-y:auto;
+  position:-webkit-sticky;position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;
   border-right:1px solid var(--line);
   background:linear-gradient(180deg,rgba(255,253,248,.96),rgba(249,243,230,.93));
   backdrop-filter:blur(14px);padding:20px 16px 36px;
@@ -1325,6 +1325,8 @@ h1{
 
 <script>
 (function () {
+  function initAll() {
+
   "use strict";
 
   /* 0. Inline Flashcards */
@@ -1339,6 +1341,96 @@ h1{
     card.addEventListener("click", toggle);
     card.addEventListener("keydown", function (e) {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+    });
+  });
+
+  
+  /* 0B. M1 vs M2 Classifier Lab (Interactive Lab 01) */
+  var m12Item = document.getElementById("m12Item");
+  var m12Box1 = document.getElementById("m12Box1"), m12M1 = document.getElementById("m12M1");
+  var m12Box2 = document.getElementById("m12Box2"), m12M2 = document.getElementById("m12M2");
+  var m12Why = document.getElementById("m12Why");
+  var m12Map = {
+    cash: {
+      item: "Currency in Circulation",
+      m1: "YES (Included)", c1: "kpi-box up",
+      m2: "YES (M1 is in M2)", c2: "kpi-box up",
+      why: "<b>العملة المتداولة بيد الجمهور:</b> تدخل في M1 لأنها وسيلة دفع فورية (100% سيولة)، وتدخل تلقائياً في M2 لأن M2 يشمل M1."
+    },
+    vault: {
+      item: "Vault Cash (Bank Reserves)",
+      m1: "NO (Excluded)", c1: "kpi-box dn",
+      m2: "NO (Excluded)", c2: "kpi-box dn",
+      why: "<b>النقد داخل خزائن البنوك:</b> لا يُحسب ضمن M1 أو M2 لأنه ليس بيد الجمهور ولا يُستخدم مباشرة في التداول لتجنب الازدواج الحسابي."
+    },
+    sav: {
+      item: "Savings & Small Time Deposits",
+      m1: "NO (Excluded)", c1: "kpi-box dn",
+      m2: "YES (Included)", c2: "kpi-box up",
+      why: "<b>ودائع التوفير ولأجل الصغيرة:</b> لا تدخل في M1 لأنها ليست وسيلة دفع مباشرة، لكنها تدخل في M2 لسهولة تحويلها إلى نقد."
+    },
+    card: {
+      item: "Credit Cards, Debit Cards & Checks",
+      m1: "NO (Not Money)", c1: "kpi-box warn",
+      m2: "NO (Not Money)", c2: "kpi-box warn",
+      why: "<b>بطاقة الائتمان والصراف والشيكات:</b> البطاقات والشيكات نفسها ليست نقوداً (Credit card = قرض قصير الأجل؛ Check/Debit card = أداة نقل للحساب الجاري الذي يُعد هو النقود)."
+    }
+  };
+  document.querySelectorAll("[data-m12]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll("[data-m12]").forEach(function (b) { b.classList.toggle("active", b === btn); });
+      var d = m12Map[btn.getAttribute("data-m12")];
+      if (!d) return;
+      m12Item.textContent = d.item;
+      m12M1.textContent = d.m1; m12Box1.className = d.c1;
+      m12M2.textContent = d.m2; m12Box2.className = d.c2;
+      m12Why.innerHTML = d.why;
+    });
+  });
+
+  /* 0C. Open Market Operations & Multiplier Lab (Interactive Lab 02) */
+  var omoCnb = document.getElementById("omoCnb"), omoCmb = document.getElementById("omoCmb");
+  var omoMult = document.getElementById("omoMult"), omoTotal = document.getElementById("omoTotal");
+  var omoNote = document.getElementById("omoNote");
+  var omoMap = {
+    buy: {
+      cnb: "Assets +$100M | MB +$100M",
+      cmb: "Reserves +$100M (Total Unchanged)",
+      mult: "mm = 2.5 (C/D=0.5, R/D=0.1)",
+      tot: "Money Supply +$250M", cls: "kpi-box up",
+      note: "<b>شراء سندات في السوق المفتوحة (Open Market Purchase):</b> يشتري البنك المركزي (CNB) سندات بـ $100M، فتزيد احتياطيات البنوك التجارية (Reserves) والقاعدة النقدية (MB) بـ $100M، ومع مضاعف 2.5 يتوسع عرض النقود بـ $250M."
+    },
+    sell: {
+      cnb: "Assets -$100M | MB -$100M",
+      cmb: "Reserves -$100M (Loans Contract)",
+      mult: "mm = 2.5 (C/D=0.5, R/D=0.1)",
+      tot: "Money Supply -$250M", cls: "kpi-box dn",
+      note: "<b>بيع سندات في السوق المفتوحة (Open Market Sale):</b> يبيع البنك المركزي سندات بـ $100M، فتسحب السيولة وتنخفض احتياطيات البنوك والقاعدة النقدية بـ $100M، فينكمش عرض النقود بمقدار $250M."
+    },
+    drain: {
+      cnb: "MB Unchanged",
+      cmb: "Deposits Fall -> Reserves Drain",
+      mult: "mm Falls (e.g., 2.5 -> 2.0)",
+      tot: "Money Supply Contracts", cls: "kpi-box warn",
+      note: "<b>ارتفاع التسرب النقدي (Currency Drain Ratio C/D &uarr;):</b> عندما يحتفظ الجمهور بكاش أكبر خارج البنوك، يقل المال المتاح للإقراض داخل البنوك فينخفض مضاعف النقود (mm) ويقل عرض النقود."
+    },
+    qe2: {
+      cnb: "Bought $600B Long-Term Bonds",
+      cmb: "Excess Reserves Surged (R/D &uarr;&uarr;)",
+      mult: "mm Collapsed (< 1.0)",
+      tot: "M Grew Far Less Than 2.5x", cls: "kpi-box warn",
+      note: "<b>التيسير الكمي (QE2: $600B):</b> اشترى الفيدرالي سندات بـ $600B، لكن البنوك احتفظت بمعظم السيولة كاحتياطيات فائضة (R/D ارتفع بشدة) ولم تُقرضها، فانخفض المضاعف ولم يتوسع عرض النقود بنفس النسبة."
+    }
+  };
+  document.querySelectorAll("[data-omo]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll("[data-omo]").forEach(function (b) { b.classList.toggle("active", b === btn); });
+      var d = omoMap[btn.getAttribute("data-omo")];
+      if (!d) return;
+      omoCnb.textContent = d.cnb; omoCmb.textContent = d.cmb;
+      omoMult.textContent = d.mult; omoTotal.textContent = d.tot;
+      omoTotal.parentElement.className = d.cls;
+      omoNote.innerHTML = d.note;
     });
   });
 
@@ -1449,15 +1541,83 @@ h1{
   });
   updateProgress();
 
-  /* 4. Sidebar Nav, Readbar & Completion */
+  /* Sidebar Nav, Readbar & Completion */
   var links = Array.prototype.slice.call(document.querySelectorAll(".nav a"));
-  var sections = links.map(function (a) { return document.querySelector(a.getAttribute("href")); });
-  function setActive() {
-    var pos = window.scrollY + 140, idx = 0;
-    sections.forEach(function (s, i) { if (s && s.offsetTop <= pos) idx = i; });
-    links.forEach(function (a, i) { a.classList.toggle("on", i === idx); });
+  var sections = links.map(function (a) {
+    var href = a.getAttribute("href");
+    return href && href.charAt(0) === "#" ? document.querySelector(href) : null;
+  });
+  var sideEl = document.querySelector(".side");
+  var lastIdx = -1;
+  var ticking = false;
+
+  function updateSidebarActive() {
+    ticking = false;
+    var scrollPos = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    var viewportH = window.innerHeight || document.documentElement.clientHeight;
+    var triggerLine = scrollPos + Math.min(200, viewportH * 0.28);
+    var idx = 0;
+
+    for (var i = 0; i < sections.length; i++) {
+      var s = sections[i];
+      if (s) {
+        var top = s.getBoundingClientRect().top + scrollPos;
+        if (top <= triggerLine) {
+          idx = i;
+        }
+      }
+    }
+
+    if ((viewportH + scrollPos) >= document.documentElement.scrollHeight - 24) {
+      idx = links.length - 1;
+    }
+
+    if (idx !== lastIdx) {
+      lastIdx = idx;
+      links.forEach(function (a, i) {
+        var isOn = (i === idx);
+        a.classList.toggle("on", isOn);
+        if (isOn && sideEl && sideEl.scrollHeight > sideEl.clientHeight) {
+          var aTop = a.offsetTop;
+          var aBot = aTop + a.offsetHeight;
+          var pad = 48;
+          if (aTop < sideEl.scrollTop + pad || aBot > sideEl.scrollTop + sideEl.clientHeight - pad) {
+            sideEl.scrollTo({
+              top: Math.max(0, aTop - (sideEl.clientHeight / 2) + (a.offsetHeight / 2)),
+              behavior: "smooth"
+            });
+          }
+        }
+      });
+    }
   }
-  window.addEventListener("scroll", setActive, { passive: true }); setActive();
+
+  function requestSidebarUpdate() {
+    if (!ticking) {
+      ticking = true;
+      window.requestAnimationFrame(updateSidebarActive);
+    }
+  }
+
+  links.forEach(function (a, i) {
+    a.addEventListener("click", function (e) {
+      var href = a.getAttribute("href");
+      var target = href && href.charAt(0) === "#" ? document.querySelector(href) : null;
+      if (target) {
+        e.preventDefault();
+        lastIdx = i;
+        links.forEach(function (el, j) { el.classList.toggle("on", j === i); });
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (history.replaceState) {
+          history.replaceState(null, "", href);
+        }
+      }
+    });
+  });
+
+  window.addEventListener("scroll", requestSidebarUpdate, { passive: true });
+  window.addEventListener("resize", requestSidebarUpdate, { passive: true });
+  updateSidebarActive();
   var readbar = document.getElementById("readbar");
   function updateRead() {
     var h = document.documentElement.scrollHeight - window.innerHeight;
@@ -1541,6 +1701,13 @@ h1{
     glItems.forEach(function (it) { var hit = q === "" || it.textContent.toLowerCase().indexOf(q) !== -1; it.classList.toggle("hide", !hit); if (hit) shown++; });
     glCount.textContent = shown + " من " + glItems.length + " مصطلحاً";
   });
+
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAll);
+  } else {
+    initAll();
+  }
 })();
 </script>
 </body>
