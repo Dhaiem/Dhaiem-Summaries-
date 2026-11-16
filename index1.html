@@ -35,9 +35,9 @@
   --shadow:0 14px 34px -18px rgba(120,96,64,0.28);
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;overflow-x:hidden}
+html{scroll-behavior:smooth;overflow-x:clip}
 body{
-  margin:0;background:var(--bg);color:var(--txt);overflow-x:hidden;
+  margin:0;background:var(--bg);color:var(--txt);overflow-x:clip;
   font-family:'IBM Plex Sans Arabic','Tajawal','Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
   font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased;
 }
@@ -60,7 +60,7 @@ body::before{
 }
 
 .side{
-  position:sticky;top:0;height:100vh;overflow-y:auto;
+  position:-webkit-sticky;position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;
   border-right:1px solid var(--line);
   background:linear-gradient(180deg,rgba(255,253,248,.96),rgba(249,243,230,.93));
   backdrop-filter:blur(14px);padding:20px 16px 36px;
@@ -1980,6 +1980,8 @@ h1{
 
 <script>
 (function () {
+  function initAll() {
+
   "use strict";
 
   /* 1. Inline Flashcards */
@@ -2348,19 +2350,83 @@ h1{
 
   updateProgress();
 
-  /* 8. Sidebar Nav, Reading Bar & Completion */
+  /* Sidebar Nav, Readbar & Completion */
   var links = Array.prototype.slice.call(document.querySelectorAll(".nav a"));
-  var sections = links.map(function (a) { return document.querySelector(a.getAttribute("href")); });
-  function setActive() {
-    var pos = window.scrollY + 140;
+  var sections = links.map(function (a) {
+    var href = a.getAttribute("href");
+    return href && href.charAt(0) === "#" ? document.querySelector(href) : null;
+  });
+  var sideEl = document.querySelector(".side");
+  var lastIdx = -1;
+  var ticking = false;
+
+  function updateSidebarActive() {
+    ticking = false;
+    var scrollPos = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    var viewportH = window.innerHeight || document.documentElement.clientHeight;
+    var triggerLine = scrollPos + Math.min(200, viewportH * 0.28);
     var idx = 0;
-    sections.forEach(function (s, i) {
-      if (s && s.offsetTop <= pos) idx = i;
-    });
-    links.forEach(function (a, i) { a.classList.toggle("on", i === idx); });
+
+    for (var i = 0; i < sections.length; i++) {
+      var s = sections[i];
+      if (s) {
+        var top = s.getBoundingClientRect().top + scrollPos;
+        if (top <= triggerLine) {
+          idx = i;
+        }
+      }
+    }
+
+    if ((viewportH + scrollPos) >= document.documentElement.scrollHeight - 24) {
+      idx = links.length - 1;
+    }
+
+    if (idx !== lastIdx) {
+      lastIdx = idx;
+      links.forEach(function (a, i) {
+        var isOn = (i === idx);
+        a.classList.toggle("on", isOn);
+        if (isOn && sideEl && sideEl.scrollHeight > sideEl.clientHeight) {
+          var aTop = a.offsetTop;
+          var aBot = aTop + a.offsetHeight;
+          var pad = 48;
+          if (aTop < sideEl.scrollTop + pad || aBot > sideEl.scrollTop + sideEl.clientHeight - pad) {
+            sideEl.scrollTo({
+              top: Math.max(0, aTop - (sideEl.clientHeight / 2) + (a.offsetHeight / 2)),
+              behavior: "smooth"
+            });
+          }
+        }
+      });
+    }
   }
-  window.addEventListener("scroll", setActive, { passive: true });
-  setActive();
+
+  function requestSidebarUpdate() {
+    if (!ticking) {
+      ticking = true;
+      window.requestAnimationFrame(updateSidebarActive);
+    }
+  }
+
+  links.forEach(function (a, i) {
+    a.addEventListener("click", function (e) {
+      var href = a.getAttribute("href");
+      var target = href && href.charAt(0) === "#" ? document.querySelector(href) : null;
+      if (target) {
+        e.preventDefault();
+        lastIdx = i;
+        links.forEach(function (el, j) { el.classList.toggle("on", j === i); });
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (history.replaceState) {
+          history.replaceState(null, "", href);
+        }
+      }
+    });
+  });
+
+  window.addEventListener("scroll", requestSidebarUpdate, { passive: true });
+  window.addEventListener("resize", requestSidebarUpdate, { passive: true });
+  updateSidebarActive();
 
   var readbar = document.getElementById("readbar");
   function updateRead() {
@@ -2538,6 +2604,13 @@ h1{
     });
     glCount.textContent = shown + " من " + glItems.length + " مصطلحاً";
   });
+
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAll);
+  } else {
+    initAll();
+  }
 })();
 </script>
 </body>
